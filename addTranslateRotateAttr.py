@@ -1,31 +1,27 @@
 import maya.cmds as cmds
 
-# make viewport selection, parent control then child control
+# select the parent first, then the children
 
+sels = cmds.ls(sl=True)
 
-# create attributes on child control
-# get selection, separate parent control and child control
-sels = cmds.ls(sl=True) # [parent control, child control]
-parent_ctrl = sels[0]
-child_ctrl = sels[1]
-#get parent group of child control
-child_ctrl_grp = cmds.listRelatives(child_ctrl, parent=True)[0] # [child control's parent node]
+for index in range(0, len(sels) - 1, 1):
+    parent_ctrl = sels[index]
+    child_ctrl = sels[index + 1]
 
-# create constraints
-p_constraint1 = cmds.parentConstraint(mo=True, skipRotate=['x','y','z'], weight=1)[0]
-p_constraint2 = cmds.parentConstraint(mo=True, skipTranslate=['x','y','z'], weight=1)[0]
-cmds.scaleConstraint(parent_ctrl, child_ctrl_grp, weight=1)
+    child_ctrl_grp = cmds.listRelatives(child_ctrl, parent=True)[0]
 
-# create attributes on the child control
-if not cmds.attributeQuery('FollowTranslate', node=child_ctrl, exists=True):
-    cmds.addAttr(child_ctrl, ln='FollowTranslate', at='double', min=0, max=1, dv=1)
-    cmds.setAttr('%s.FollowTranslate' % (child_ctrl), e=True, keyable=True)
+    # creating parent constraints with and without translate/rotate
+    p_constraint1 = cmds.parentConstraint(parent_ctrl, child_ctrl_grp, mo=True, skipRotate=['x', 'y', 'z'], weight=1)[0]
+    p_constraint2 = cmds.parentConstraint(parent_ctrl, child_ctrl_grp, mo=True, skipTranslate=['x', 'y', 'z'], weight=1)[0]
+    s_constraint = cmds.scaleConstraint(parent_ctrl, child_ctrl_grp, mo=True, weight=1)[0]  # constrain scale
 
-if not cmds.attributeQuery('FollowRotate', node=child_ctrl, exists=True):
-    cmds.addAttr(child_ctrl, ln='FollowRotate', at='double', min=0, max=1, dv=1)
-    cmds.setAttr('%s.FollowRotate' % (child_ctrl), e=True, keyable=True)
+    # adding custom attributes
+    cmds.addAttr(child_ctrl, ln="Follow_Translate", at="double", min=0, max=1, dv=1)
+    cmds.setAttr(f"{child_ctrl}.Follow_Translate", e=True, keyable=True)
+    cmds.addAttr(child_ctrl, ln="Follow_Rotate", at="double", min=0, max=1, dv=1)
+    cmds.setAttr(f"{child_ctrl}.Follow_Rotate", e=True, keyable=True)
 
-#connect attributes from child control to constraint weights
-cmds.connectAttr('%s.FollowTranslate' % (child_ctrl), '%s.w0' % (p_constraint1), f=True)
-cmds.connectAttr('%s.FollowRotate' % (child_ctrl), '%s.w0' % (p_constraint1), f=True)
-
+    # connecting custom attributes to parent constraints
+    cmds.connectAttr(f"{child_ctrl}.Follow_Translate", f"{p_constraint1}.w0", f=True)
+    cmds.connectAttr(f"{child_ctrl}.Follow_Rotate", f"{p_constraint2}.w0", f=True)
+    cmds.connectAttr(f"{child_ctrl}.Follow_Rotate", f"{p_constraint2}.w0", f=True)
