@@ -1,21 +1,40 @@
 import maya.cmds as cmds
 
+selected_joints = cmds.ls(selection=True, type='joint')
+
 
 def createControl(joint):
-    # Create a NURBS curve (control) at the joint's position.
-    # select and query joints position first
+    if not selected_joints:
+        cmds.warning("Please select a joint.")
+        return
+
+    # split joint name into two
+    prefix, suffix = joint.rsplit('_', 1)
+
+    # create control name
+    control_name = prefix + '_ctrl'
+
+    # Query translation and rotation separately
     joint_position = cmds.xform(joint, query=True, translation=True, worldSpace=True)
-    print(joint_position)
+    joint_rotation = cmds.xform(joint, query=True, rotation=True, worldSpace=True)
 
-    # create nurbs circle next and set translation as the joints
-    control = cmds.circle()
-    cmds.xform(control, translation=joint_position, worldSpace=True)
+    # Ensure rotation values are valid
+    if not joint_position or not joint_rotation:
+        cmds.warning("Error querying position or rotation for {joint}. Skipping.")
+        return
 
-    # Create an empty group (parent group) at the joint's position.
-    group = cmds.group(empty=True)
-    cmds.xform(group, translation=joint_position, worldSpace=True)
-    # Parent the control under the parent group.
+    # Create control
+    control = cmds.circle(name=control_name)[0]  # Get the actual control shape
+    cmds.xform(control, translation=joint_position, rotation=joint_rotation, worldSpace=True)
+
+    # Create group and position it
+    group = cmds.group(empty=True, name=control_name + "_grp")
+    cmds.xform(group, translation=joint_position, rotation=joint_rotation, worldSpace=True)
+
+    # Parent control under group
     cmds.parent(control, group)
-    # Rename the control and parent group according to established naming conventions
-    cmds.rename(control, joint + '_ctrl')
-    cmds.rename(group, '_grp')
+
+
+# Loop through selected joints and create controls
+for joint in selected_joints:
+    createControl(joint)
