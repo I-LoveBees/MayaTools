@@ -11,5 +11,5 @@ def changeColor(color=None):
     for sel in sels:
         shapes = cmds.listRelatives(sel, shapes=True)
         for shape in shapes:
-            cmds.setAttr(shape + '.overrideEnabled', 1)
+            cmds.setAttr(shape + shape'.overrideEnabled', 1)
             cmds.setAttr(shape + '.overrideColor', color)
